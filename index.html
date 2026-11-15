@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YASMIN AI</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Roboto,sans-serif}
+html,body{height:100%}
+body{background:#0f0a1e;color:#fff;display:flex;flex-direction:column;overflow:hidden}
+header{background:linear-gradient(90deg,#6a00ff,#b800ff);padding:10px;text-align:center;border-bottom:2px solid #ffd700}
+header h1{font-size:21px;letter-spacing:1px}
+header h1 span{color:#ffd700}
+header p{font-size:12px;opacity:.85}
+.lang{margin-top:6px;display:flex;justify-content:center;gap:8px}
+.lang button{padding:4px 14px;border-radius:20px;border:1px solid #ffd700;background:transparent;color:#ffd700}
+.lang button.active{background:#ffd700;color:#000;font-weight:bold}
+main{flex:1;min-height:0;position:relative}
+.screen{display:none;height:100%;overflow-y:auto;padding:12px}
+.screen.active{display:block}
+#tab-chat.active{display:flex;flex-direction:column;padding:0}
+.chat-box{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:82%;padding:10px 12px;border-radius:16px;font-size:15px;line-height:1.4;word-wrap:break-word}
+.msg.user{background:#6a00ff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.ai{background:#221a3f;align-self:flex-start;border:1px solid #3d2a6d;border-bottom-left-radius:4px}
+.msg.ai b{color:#ffd700}
+.input-row{display:flex;gap:8px;padding:10px;background:#0f0a1e;border-top:1px solid #3d2a6d}
+.input-row input{flex:1;min-width:0;padding:12px;border-radius:25px;border:1px solid #444;background:#1e1540;color:#fff;outline:none;font-size:15px}
+.input-row button{padding:12px 18px;border-radius:25px;border:none;background:#ffd700;font-weight:bold}
+.mic-wrap{text-align:center;padding-top:24px}
+.mic-btn{width:140px;height:140px;border-radius:50%;border:4px solid #ffd700;background:radial-gradient(circle,#b800ff,#6a00ff);font-size:55px;color:#fff;box-shadow:0 0 30px #b800ff}
+.mic-btn.listening{animation:pulse 1s infinite}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+#voiceText{background:#221a3f;padding:14px;border-radius:12px;margin-top:18px;min-height:60px;text-align:left}
+#voiceReply{color:#ffd700;margin-top:10px;text-align:left}
+.ghost{margin-top:12px;padding:10px 18px;border-radius:20px;border:1px solid #ffd700;background:transparent;color:#ffd700}
+.card{background:#221a3f;border:1px solid #3d2a6d;padding:14px;border-radius:14px;margin-bottom:12px}
+.card label{font-size:13px;color:#ffd700}
+.card input,.card select{width:100%;padding:11px;margin:6px 0 12px;border-radius:10px;border:1px solid #444;background:#120e2a;color:#fff;font-size:15px}
+.gen-btn{width:100%;padding:13px;background:#ffd700;border:none;border-radius:12px;font-weight:bold;font-size:16px}
+.result h3{color:#ffd700;margin:16px 0 6px;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+.result p,.result li{font-size:14px;line-height:1.5}
+.result ol,.result ul{padding-left:20px}
+.copy{background:#6a00ff;color:#fff;border:none;padding:5px 12px;border-radius:20px;font-size:12px}
+nav{display:flex;background:#1a1133;border-top:1px solid #3d2a6d}
+nav button{flex:1;padding:12px 0;background:none;border:none;color:#aaa;font-size:14px;border-top:3px solid transparent}
+nav button.active{color:#ffd700;border-top-color:#ffd700;font-weight:bold}
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#ffd700;color:#000;padding:8px 16px;border-radius:20px;font-weight:bold;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+<h1>YASMIN <span>AI</span></h1>
+<p>Your Personal AI &amp; YouTube Partner</p>
+<div class="lang">
+<button id="btnHi" class="active" onclick="setLang('hi')">हिंदी</button>
+<button id="btnEn" onclick="setLang('en')">English</button>
+</div>
+</header>
+
+<main>
+<div id="tab-chat" class="screen active">
+<div class="chat-box" id="chatBox"></div>
+<div class="input-row">
+<input id="chatInput" placeholder="यहाँ लिखो...">
+<button onclick="sendChat()">Send ➤</button>
+</div>
+</div>
+
+<div id="tab-voice" class="screen">
+<div class="mic-wrap">
+<button class="mic-btn" id="micBtn" onclick="startVoice()">🎤</button>
+<p style="margin-top:12px" id="micLabel"></p>
+<div id="voiceText"></div>
+<div id="voiceReply"></div>
+<button class="ghost" onclick="speakLast()">🔊 दोबारा सुनो</button>
+</div>
+</div>
+
+<div id="tab-yt" class="screen">
+<div class="card">
+<label>Video Topic</label>
+<input id="ytTopic" placeholder="Ex: दही के फायदे">
+<label>Audience</label>
+<select id="ytAudience"><option>General Public</option><option>Students</option><option>Housewives</option><option>Youngsters</option></select>
+<label>Language</label>
+<select id="ytLang"><option value="hi">Hindi</option><option value="en">English</option></select>
+<button class="gen-btn" onclick="generateIdeas()">✨ Generate Ideas</button>
+</div>
+<div id="ytResult" class="result"></div>
+</div>
+</main>
+
+<nav>
+<button class="active" onclick="showTab('chat',this)">💬 Chat</button>
+<button onclick="showTab('voice',this)">🎤 Voice</button>
+<button onclick="showTab('yt',this)">▶️ YouTube Partner</button>
+</nav>
+<div id="toast"></div>
+
+<script>
+/* ---- AI connection: baad me API key yahin jodenge ---- */
+async function getAIReply(text, lang){
+  // TODO: yahan Gemini/OpenAI API call aayegi
+  return lang==='hi'
+    ? 'आपने कहा: "'+text+'". अभी मैं डेमो मोड में हूँ, असली AI जवाब API key जोड़ने के बाद आएगा।'
+    : 'You said: "'+text+'". I am in demo mode; real AI replies will come after the API key is added.';
+}
+/* ------------------------------------------------------ */
+
+let lang='hi', lastReply='', ytData={};
+const T={
+ hi:{welcome:'नमस्ते! मैं YASMIN AI हूँ। कुछ भी पूछो।',ph:'यहाँ लिखो...',mic:'माइक दबाओ और बोलो',vt:'तुम्हारी बात यहाँ दिखेगी...',listen:'सुन रही हूँ... बोलो...',said:'तुमने बोला: ',copied:'कॉपी हो गया!'},
+ en:{welcome:'Hello! I am YASMIN AI. Ask me anything.',ph:'Type here...',mic:'Tap the mic and speak',vt:'Your words will appear here...',listen:'Listening...',said:'You said: ',copied:'Copied!'}
+};
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500);}
+function addMsg(cls,html){const b=document.getElementById('chatBox');const d=document.createElement('div');d.className='msg '+cls;d.innerHTML=html;b.appendChild(d);b.scrollTop=b.scrollHeight;}
+
+function applyLang(){
+  const t=T[lang];
+  document.getElementById('chatInput').placeholder=t.ph;
+  document.getElementById('micLabel').textContent=t.mic;
+  document.getElementById('voiceText').textContent=t.vt;
+}
+function setLang(l){
+  lang=l;
+  document.getElementById('btnHi').classList.toggle('active',l==='hi');
+  document.getElementById('btnEn').classList.toggle('active',l==='en');
+  document.getElementById('ytLang').value=l;
+  applyLang();
+}
+function showTab(t,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
+
+async function sendChat(){
+  const inp=document.getElementById('chatInput');
+  const txt=inp.value.trim(); if(!txt)return;
+  addMsg('user',esc(txt)); inp.value='';
+  const reply=await getAIReply(txt,lang);
+  lastReply=reply;
+  addMsg('ai','<b>YASMIN AI:</b> '+esc(reply));
+}
+
+function startVoice(){
+  const Rec=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!Rec){alert(lang==='hi'?'इस ब्राउज़र में वॉइस सपोर्ट नहीं है। Chrome में खोलो।':'Voice is not supported here. Open in Chrome.');return;}
+  const btn=document.getElementById('micBtn');
+  const rec=new Rec();
+  rec.lang=lang==='hi'?'hi-IN':'en-US'; rec.interimResults=false;
+  btn.classList.add('listening');
+  document.getElementById('micLabel').textContent=T[lang].listen;
+  rec.onresult=async e=>{
+    const text=e.results[0][0].transcript;
+    document.getElementById('voiceText').innerHTML='<b>'+T[lang].said+'</b>'+esc(text);
+    const reply=await getAIReply(text,lang);
+    document.getElementById('voiceReply').textContent='YASMIN: '+reply;
+    lastReply=reply; speakLast();
+  };
+  rec.onerror=()=>{};
+  rec.onend=()=>{btn.classList.remove('listening');document.getElementById('micLabel').textContent=T[lang].mic;};
+  try{rec.start();}catch(err){btn.classList.remove('listening');}
+}
+function speakLast(){
+  if(!lastReply||!window.speechSynthesis)return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(lastReply);
+  u.lang=lang==='hi'?'hi-IN':'en-US';
+  speechSynthesis.speak(u);
+}
+
+function generateIdeas(){
+  const topicRaw=document.getElementById('ytTopic').value.trim();
+  const hi=document.getElementById('ytLang').value==='hi';
+  const topic=topicRaw||(hi?'दही के फायदे':'Benefits of curd');
+  const aud=document.getElementById('ytAudience').value;
+  let titles,outline,desc;
+  if(hi){
+    titles=[topic+' में सब ये 5 गलतियाँ करते हैं',topic+' – वो सच जो कोई नहीं बताता',topic+' से 1 महीने में क्या होगा?',topic+' | शुरुआत करने वालों के लिए पूरी गाइड',' ये वीडियो देखने के बाद '+topic+' आसान लगेगा'].map(s=>s.trim());
+    outline=['Hook (0-10 सेकंड): '+topic+' के बारे में एक सवाल या चौंकाने वाला तथ्य','Intro (10-30 सेकंड): अपना परिचय + आज क्या सीखेंगे','पॉइंट 1: '+topic+' का सबसे बड़ा फायदा / गलती','पॉइंट 2: 3 काम की टिप्स','पॉइंट 3: असली उदाहरण / कहानी','अंत: सारांश + सब्सक्राइब करने को कहना'];
+    desc='इस वीडियो में हम '+topic+' के बारे में बात करेंगे। यह वीडियो '+aud+' के लिए है। वीडियो पूरा देखिए, बहुत काम की बातें बताई हैं। Like और Subscribe ज़रूर करें!';
+  }else{
+    titles=['5 Mistakes Everyone Makes With '+topic,topic+' – The Truth Nobody Tells You','What Happens After 1 Month of '+topic+'?',topic+' | Complete Beginner Guide','Watch This Before You Start '+topic];
+    outline=['Hook (0-10s): A question or shocking fact about '+topic,'Intro (10-30s): Who you are + what viewers will learn','Point 1: The biggest benefit / mistake of '+topic,'Point 2: 3 practical tips','Point 3: Real example or story','End: Summary + ask to subscribe'];
+    desc='In this video we talk about '+topic+'. This video is for '+aud+'. Watch till the end for useful tips. Like and Subscribe!';
+  }
+  const tags='#'+topic.replace(/[^\p{L}\p{M}\p{N}]+/gu,'')+' #YasminAI #Viral #Trending #Tips';
+  ytData={titles:titles.join('\n'),outline:outline.join('\n'),desc:desc,tags:tags};
+  document.getElementById('ytResult').innerHTML=
+   '<h3>5 Title Ideas <button class="copy" data-k="titles">Copy</button></h3><ol>'+titles.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ol>'+
+   '<h3>Script Outline <button class="copy" data-k="outline">Copy</button></h3><ul>'+outline.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>'+
+   '<h3>Description <button class="copy" data-k="desc">Copy</button></h3><p>'+esc(desc)+'</p>'+
+   '<h3>Hashtags <button class="copy" data-k="tags">Copy</button></h3><p>'+esc(tags)+'</p>';
+}
+document.getElementById('ytResult').addEventListener('click',e=>{
+  const k=e.target.dataset&&e.target.dataset.k; if(k)copyText(ytData[k]);
+});
+function copyText(t){
+  const done=()=>toast(T[lang].copied);
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done).catch(()=>fallback(t,done));}
+  else fallback(t,done);
+}
+function fallback(t,done){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');}catch(e){}a.remove();done();}
+
+applyLang();
+addMsg('ai','<b>YASMIN AI:</b> '+esc(T.hi.welcome));
+</script>
+</body>
+</html>
